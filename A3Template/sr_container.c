@@ -35,11 +35,11 @@ struct cgroups_control *cgroups[5] = {
                 .settings = (struct cgroup_setting *[]) {
                         & (struct cgroup_setting) { //Read bytes per sec
                                 .name = "blkio.throttle.read_bps_device",
-                                .value = "64"
+                                .value = "64" //TODO ??? Ask Shabir
                         },
                         & (struct cgroup_setting) { //Write bytes per sec
                                 .name = "blkio.throttle.write_bps_device",
-                                .value = "64"
+                                .value = "64" //TODO ??? Ask Shabir
                         }
                         &self_to_task,             // must be added to all the new controls added
                         NULL                       // NULL at the end of the array
@@ -51,7 +51,7 @@ struct cgroups_control *cgroups[5] = {
                 .settings = (struct cgroup_setting *[]) {
                         & (struct cgroup_setting) {
                                 .name = "cpu.shares",
-                                .value = "100"
+                                .value = CPU_SHARES
                         },
                         &self_to_task,             // must be added to all the new controls added
                         NULL                       // NULL at the end of the array
@@ -75,7 +75,7 @@ struct cgroups_control *cgroups[5] = {
                 .settings = (struct cgroup_setting *[]) {
                         & (struct cgroup_setting) {
                                 .name = "pids.max",
-                                .value = "15"
+                                .value = PIDS
                         },
                         &self_to_task,             // must be added to all the new controls added
                         NULL                       // NULL at the end of the array
@@ -87,7 +87,7 @@ struct cgroups_control *cgroups[5] = {
                 .settings = (struct cgroup_setting *[]) {
                         & (struct cgroup_setting) {
                                 .name = "memory.limit_in_bytes",
-                                .value = "32000"
+                                .value = MEMORY
                         },
                         &self_to_task,             // must be added to all the new controls added
                         NULL                       // NULL at the end of the array
@@ -127,6 +127,8 @@ int main(int argc, char **argv)
     pid_t child_pid = 0;
     int last_optind = 0;
     bool found_cflag = false;
+    static char stack[STACK_SIZE];
+
     while ((option = getopt(argc, argv, "c:m:u:C:s:p:M:r:w:H")))
     {
         if (found_cflag)
@@ -150,8 +152,9 @@ int main(int argc, char **argv)
                     return EXIT_FAILURE;
                 }
                 break;
+
             case 'C':
-                cgroups[1]->settings[0]->value = optarg;
+                cgroups[1]->settings[0]->value = optarg; //Not sure this is setting properly
                 break;
             case 's':
                 cgroups[2]->settings[0]->value = optarg;
@@ -253,7 +256,8 @@ int main(int argc, char **argv)
      * ------------------------------------------------------
      **/
 
-    // You code for clone() goes here
+    child_pid = clone(child_function(&config), stack+STACK_SIZE, CLONE_NEWNET | CLONE_NEWCGROUP | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNS | CLONE_NEWUTS | SIGCHILD, NULL);
+    // CLONE_NEWNS for mount namespace
 
     /**
      *  ------------------------------------------------------

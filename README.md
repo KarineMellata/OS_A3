@@ -1,7 +1,7 @@
 # OS_A3
 
-- [ ] Setup cgroup controls
-- [ ] Implement child process creation logic
+- [x] Setup cgroup controls (Not tested yet)
+- [x] Implement child process creation logic (Not tested yet)
 - [ ] Changing root
 - [ ] Setting capabilities to container
 - [ ] Disabling capabilities
