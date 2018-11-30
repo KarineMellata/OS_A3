@@ -15,10 +15,10 @@
  *      process to be added to the cgroup. 
  *  You must add this to all the controls you create so that it is added to the task list.
  *  See the example 'cgroups_control' added to the array of controls - 'cgroups' - below
- **/  
+ **/
 struct cgroup_setting self_to_task = {
-	.name = "tasks",
-	.value = "0"
+        .name = "tasks",
+        .value = "0"
 };
 
 /**
@@ -28,20 +28,72 @@ struct cgroup_setting self_to_task = {
  *  You should fill this array with the additional controls from commandline flags as described 
  *      in the comments for the main() below
  *  ------------------------------------------------------
- **/ 
+ **/
 struct cgroups_control *cgroups[5] = {
-	& (struct cgroups_control) {
-		.control = CGRP_BLKIO_CONTROL,
-		.settings = (struct cgroup_setting *[]) {
-			& (struct cgroup_setting) {
-				.name = "blkio.weight",
-				.value = "64"
-			},
-			&self_to_task,             // must be added to all the new controls added
-			NULL                       // NULL at the end of the array
-		}
-	},
-	NULL                               // NULL at the end of the array
+        & (struct cgroups_control) {
+                .control = CGRP_BLKIO_CONTROL,
+                .settings = (struct cgroup_setting *[]) {
+                        & (struct cgroup_setting) { //Read bytes per sec
+                                .name = "blkio.throttle.read_bps_device",
+                                .value = "64"
+                        },
+                        & (struct cgroup_setting) { //Write bytes per sec
+                                .name = "blkio.throttle.write_bps_device",
+                                .value = "64"
+                        }
+                        &self_to_task,             // must be added to all the new controls added
+                        NULL                       // NULL at the end of the array
+                }
+        },
+
+        & (struct cgroups_control) {
+                .control = CGRP_CPU_CONTROL,
+                .settings = (struct cgroup_setting *[]) {
+                        & (struct cgroup_setting) {
+                                .name = "cpu.shares",
+                                .value = "100"
+                        },
+                        &self_to_task,             // must be added to all the new controls added
+                        NULL                       // NULL at the end of the array
+                }
+        },
+
+        & (struct cgroups_control) {
+                .control = CGRP_CPU_SET_CONTROL,
+                .settings = (struct cgroup_setting *[]) {
+                        & (struct cgroup_setting) {
+                                .name = "cpuset.cpus",
+                                .value = "2"
+                        },
+                        &self_to_task,             // must be added to all the new controls added
+                        NULL                       // NULL at the end of the array
+                }
+        },
+
+        & (struct cgroups_control) {
+                .control = CGRP_PIDS_CONTROL,
+                .settings = (struct cgroup_setting *[]) {
+                        & (struct cgroup_setting) {
+                                .name = "pids.max",
+                                .value = "15"
+                        },
+                        &self_to_task,             // must be added to all the new controls added
+                        NULL                       // NULL at the end of the array
+                }
+        },
+
+        & (struct cgroups_control) {
+                .control = CGRP_MEMORY_CONTROL,
+                .settings = (struct cgroup_setting *[]) {
+                        & (struct cgroup_setting) {
+                                .name = "memory.limit_in_bytes",
+                                .value = "32000"
+                        },
+                        &self_to_task,             // must be added to all the new controls added
+                        NULL                       // NULL at the end of the array
+                }
+        }
+        NULL                               // NULL at the end of the array
 };
 
 
@@ -51,7 +103,7 @@ struct cgroups_control *cgroups[5] = {
  *          1. m : The rootfs of the container
  *          2. u : The userid mapping of the current user inside the container
  *          3. c : The initial process to run inside the container
- *  
+ *
  *   You must extend it to support the following flags:
  *          1. C : The cpu shares weight to be set (cpu-cgroup controller)
  *          2. s : The cpu cores to which the container must be restricted (cpuset-cgroup controller)
@@ -59,8 +111,8 @@ struct cgroups_control *cgroups[5] = {
  *          4. M : The memory consuption allowed in the container (memory-cgroup controller)
  *          5. r : The read IO rate in bytes (blkio-cgroup controller)
  *          6. w : The write IO rate in bytes (blkio-cgroup controller)
- *          7. H : The hostname of the container 
- * 
+ *          7. H : The hostname of the container
+ *
  *   You can follow the current method followed to take in these flags and extend it.
  *   Note that the current implementation necessitates the "-c" flag to be the last one.
  *   For flags 1-6 you can add a new 'cgroups_control' to the existing 'cgroups' array
@@ -75,32 +127,53 @@ int main(int argc, char **argv)
     pid_t child_pid = 0;
     int last_optind = 0;
     bool found_cflag = false;
-    while ((option = getopt(argc, argv, "c:m:u:")))
+    while ((option = getopt(argc, argv, "c:m:u:C:s:p:M:r:w:H")))
     {
         if (found_cflag)
             break;
 
         switch (option)
         {
-        case 'c':
-            config.argc = argc - last_optind - 1;
-            config.argv = &argv[argc - config.argc];
-            found_cflag = true;
-            break;
-        case 'm':
-            config.mount_dir = optarg;
-            break;
-        case 'u':
-            if (sscanf(optarg, "%d", &config.uid) != 1)
-            {
-                fprintf(stderr, "UID not as expected: %s\n", optarg);
+            case 'c':
+                config.argc = argc - last_optind - 1;
+                config.argv = &argv[argc - config.argc];
+                found_cflag = true;
+                break;
+            case 'm':
+                config.mount_dir = optarg;
+                break;
+            case 'u':
+                if (sscanf(optarg, "%d", &config.uid) != 1)
+                {
+                    fprintf(stderr, "UID not as expected: %s\n", optarg);
+                    cleanup_stuff(argv, sockets);
+                    return EXIT_FAILURE;
+                }
+                break;
+            case 'C':
+
+                break;
+            case 's':
+                //Whatever
+                break;
+            case 'p':
+                //Whatever
+                break;
+            case 'M':
+                //Whatever
+                break;
+            case 'r':
+                //Whatever
+                break;
+            case 'w':
+                //Whatever
+                break;
+            case 'H':
+                config.hostname = optarg;
+                break;
+            default:
                 cleanup_stuff(argv, sockets);
                 return EXIT_FAILURE;
-            }
-            break;
-        default:
-            cleanup_stuff(argv, sockets);
-            return EXIT_FAILURE;
         }
         last_optind = optind;
     }
@@ -180,11 +253,11 @@ int main(int argc, char **argv)
      * ------------------------------------------------------
      **/
 
-        // You code for clone() goes here
+    // You code for clone() goes here
 
     /**
      *  ------------------------------------------------------
-     **/ 
+     **/
     if (child_pid == -1)
     {
         fprintf(stderr, "####### > child creation failed! %m\n");
@@ -219,7 +292,7 @@ int child_function(void *arg)
                 setup_child_userns(config) || \
                 setup_child_capabilities() || \
                 setup_syscall_filters()
-        )
+            )
     {
         close(config->fd);
         return -1;
