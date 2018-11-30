@@ -151,22 +151,22 @@ int main(int argc, char **argv)
                 }
                 break;
             case 'C':
-
+                cgroups[1]->settings[0]->value = optarg;
                 break;
             case 's':
-                //Whatever
+                cgroups[2]->settings[0]->value = optarg;
                 break;
             case 'p':
-                //Whatever
+                cgroups[3]->settings[0]->value = optarg;
                 break;
             case 'M':
-                //Whatever
+                cgroups[4]->settings[0]->value = optarg;
                 break;
             case 'r':
-                //Whatever
+                cgroups[0]->settings[0]->value = optarg;
                 break;
             case 'w':
-                //Whatever
+                cgroups[0]->settings[1]->value = optarg;
                 break;
             case 'H':
                 config.hostname = optarg;
