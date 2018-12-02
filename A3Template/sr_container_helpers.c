@@ -16,7 +16,12 @@ int switch_child_root(const char *new_root, const char *put_old)
      *  ------------------------ TODO ------------------------
      *  Simply use the "pivot_root()" system call to switch child's root to the new root
      *  ------------------------------------------------------
-     * */ 
+     * */
+
+    if(pivot_root(new_root, put_old) == -1){
+        fprintf(stderr);
+        return EXIT_FAILURE;
+    }
     return 0;
 }
 

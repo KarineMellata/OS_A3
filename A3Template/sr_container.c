@@ -40,7 +40,7 @@ struct cgroups_control *cgroups[5] = {
                         & (struct cgroup_setting) { //Write bytes per sec
                                 .name = "blkio.throttle.write_bps_device",
                                 .value = "64" //TODO ??? Ask Shabir
-                        }
+                        },
                         &self_to_task,             // must be added to all the new controls added
                         NULL                       // NULL at the end of the array
                 }
@@ -152,24 +152,24 @@ int main(int argc, char **argv)
                     return EXIT_FAILURE;
                 }
                 break;
-
+            //TODO: Add all error checks for arguments
             case 'C':
-                cgroups[1]->settings[0]->value = optarg; //Not sure this is setting properly
+                strcpy(cgroups[1]->settings[0]->value, optarg); //Not sure this is setting properly
                 break;
             case 's':
-                cgroups[2]->settings[0]->value = optarg;
+                strcpy(cgroups[2]->settings[0]->value, optarg);
                 break;
             case 'p':
-                cgroups[3]->settings[0]->value = optarg;
+                strcpy(cgroups[3]->settings[0]->value, optarg);
                 break;
             case 'M':
-                cgroups[4]->settings[0]->value = optarg;
+                strcpy(cgroups[4]->settings[0]->value, optarg);
                 break;
             case 'r':
-                cgroups[0]->settings[0]->value = optarg;
+                strcpy(cgroups[0]->settings[0]->value, optarg);
                 break;
             case 'w':
-                cgroups[0]->settings[1]->value = optarg;
+                strcpy(cgroups[0]->settings[1]->value, optarg);
                 break;
             case 'H':
                 config.hostname = optarg;
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
      * ------------------------------------------------------
      **/
 
-    child_pid = clone(child_function(&config), stack+STACK_SIZE, CLONE_NEWNET | CLONE_NEWCGROUP | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNS | CLONE_NEWUTS | SIGCHILD, NULL);
+    child_pid = clone(child_function(&config), stack+STACK_SIZE, CLONE_NEWNET | CLONE_NEWCGROUP | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNS | CLONE_NEWUTS | SIGCHLD, NULL);
     // CLONE_NEWNS for mount namespace
 
     /**
