@@ -19,7 +19,7 @@ int switch_child_root(const char *new_root, const char *put_old)
      * */
 
     if(pivot_root(new_root, put_old) == -1){
-        fprintf(stderr);
+        fprintf(stderr, "pivot_root failed: %m\n");
         return EXIT_FAILURE;
     }
     return 0;

@@ -92,7 +92,7 @@ struct cgroups_control *cgroups[5] = {
                         &self_to_task,             // must be added to all the new controls added
                         NULL                       // NULL at the end of the array
                 }
-        }
+        },
         NULL                               // NULL at the end of the array
 };
 
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
      * ------------------------------------------------------
      **/
 
-    child_pid = clone(child_function(&config), stack+STACK_SIZE, CLONE_NEWNET | CLONE_NEWCGROUP | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNS | CLONE_NEWUTS | SIGCHLD, NULL);
+    child_pid = clone(child_function, stack+STACK_SIZE, CLONE_NEWNET | CLONE_NEWCGROUP | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNS | CLONE_NEWUTS | SIGCHLD, &config);
     // CLONE_NEWNS for mount namespace
 
     /**
