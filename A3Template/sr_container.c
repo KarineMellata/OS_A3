@@ -92,8 +92,7 @@ struct cgroups_control *cgroups[5] = {
                         &self_to_task,             // must be added to all the new controls added
                         NULL                       // NULL at the end of the array
                 }
-        },
-        NULL                               // NULL at the end of the array
+        }
 };
 
 
