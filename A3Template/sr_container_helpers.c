@@ -33,6 +33,38 @@ int switch_child_root(const char *new_root, const char *put_old)
  **/ 
 int setup_child_capabilities()
 {
+	int drop_caps[] = {CAP_AUDIT_CONTROL, CAP_AUDIT_READ, CAP_AUDIT_WRITE, CAP_BLOCK_SUSPEND, CAP_DAC_READ_SEARCH,
+		CAP_FSETID, CAP_IPC_LOCK, CAP_MAC_ADMIN, CAP_MAC_OVERRIDE, CAP_MKNOD, CAP_SETFCAP, CAP_SYSLOG,
+		CAP_SYS_ADMIN, CAP_SYS_BOOT, CAP_SYS_MODULE, CAP_SYS_NICE, CAP_SYS_RAWIO, CAP_SYS_RESOURCE, CAP_SYS_TIME,
+		CAP_WAKE_ALARM};
+
+	size_t num_caps_to_drop = 20;
+
+	// below, dropping from AMBIENT set
+	for(size_t i = 0; i < num_caps_to_drop; i++) {
+		if(prctl(PR_CAPBSET_DROP, drop_caps[i], 0, 0, 0)) {
+			fprintf(stderr, "prctl failed: %m\n");
+			return 1;
+		}
+	}
+
+	cap_t caps = cap_get_proc(); // get capability set of calling process
+	if(caps == NULL) {
+		perror("cap_get_proc");
+		if(caps) {
+			cap_free(caps);
+		}
+		return EXIT_FAILURE;
+	}
+
+	int clear_inh_set = cap_set_flag(caps, CAP_INHERITABLE, num_caps_to_drop, drop_caps, CAP_CLEAR); // set the designated set values to be cleared
+	if(clear_inh_set) {
+		perror("cap_set_flag");
+		cap_free(caps);
+		return EXIT_FAILURE;
+	}
+
+	cap_free(caps);
     /**
      *  Follow these steps to check if you successfully set the capabilities
      *      Copy the binary 'capsh' found inside the [/sbin] folder of the docker container

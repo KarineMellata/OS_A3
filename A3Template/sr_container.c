@@ -354,8 +354,6 @@ int main(int argc, char **argv)
 
     if (setup_child_uid_map(child_pid, sockets[0]) == -1)
     {
-	    printf("HELLO\n");
-	    fflush(stdout);
         if (child_pid)
             kill(child_pid, SIGKILL);
     }
