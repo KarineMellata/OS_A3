@@ -22,7 +22,7 @@ int switch_child_root(const char *new_root, const char *put_old)
         fprintf(stderr, "pivot_root failed: %m\n");
         return EXIT_FAILURE;
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 /**

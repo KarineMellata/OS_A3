@@ -34,65 +34,17 @@ struct cgroups_control *cgroups[5] = {
                 .control = CGRP_BLKIO_CONTROL,
                 .settings = (struct cgroup_setting *[]) {
                         & (struct cgroup_setting) { //Read bytes per sec
-                                .name = "blkio.throttle.read_bps_device",
-                                .value = "64" //TODO ??? Ask Shabir
-                        },
-                        & (struct cgroup_setting) { //Write bytes per sec
-                                .name = "blkio.throttle.write_bps_device",
-                                .value = "64" //TODO ??? Ask Shabir
+                                .name = "blkio.weight",
+                                .value = "64"
                         },
                         &self_to_task,             // must be added to all the new controls added
                         NULL                       // NULL at the end of the array
                 }
         },
 
-        & (struct cgroups_control) {
-                .control = CGRP_CPU_CONTROL,
-                .settings = (struct cgroup_setting *[]) {
-                        & (struct cgroup_setting) {
-                                .name = "cpu.shares",
-                                .value = CPU_SHARES
-                        },
-                        &self_to_task,             // must be added to all the new controls added
-                        NULL                       // NULL at the end of the array
-                }
-        },
+        
 
-        & (struct cgroups_control) {
-                .control = CGRP_CPU_SET_CONTROL,
-                .settings = (struct cgroup_setting *[]) {
-                        & (struct cgroup_setting) {
-                                .name = "cpuset.cpus",
-                                .value = "2"
-                        },
-                        &self_to_task,             // must be added to all the new controls added
-                        NULL                       // NULL at the end of the array
-                }
-        },
-
-        & (struct cgroups_control) {
-                .control = CGRP_PIDS_CONTROL,
-                .settings = (struct cgroup_setting *[]) {
-                        & (struct cgroup_setting) {
-                                .name = "pids.max",
-                                .value = PIDS
-                        },
-                        &self_to_task,             // must be added to all the new controls added
-                        NULL                       // NULL at the end of the array
-                }
-        },
-
-        & (struct cgroups_control) {
-                .control = CGRP_MEMORY_CONTROL,
-                .settings = (struct cgroup_setting *[]) {
-                        & (struct cgroup_setting) {
-                                .name = "memory.limit_in_bytes",
-                                .value = MEMORY
-                        },
-                        &self_to_task,             // must be added to all the new controls added
-                        NULL                       // NULL at the end of the array
-                }
-        }
+        
 };
 
 
@@ -127,8 +79,16 @@ int main(int argc, char **argv)
     int last_optind = 0;
     bool found_cflag = false;
     static char stack[STACK_SIZE];
+    // below two variables will be used to manipulate cgroup for blkio
+    bool blkio_read_set = false;
+    bool blkio_write_set = false;
+    // below two variables will be used to temporarily store read/write rates for blkio
+    char* blkio_read_rate;
+    char* blkio_write_rate;
+    // below, need counter to dynamically fill cgroup array based on passed in flags
+    int cgroups_counter = 1; // counter for the cgroups array (starts at 1 b/c blkio already at 0)
 
-    while ((option = getopt(argc, argv, "c:m:u:C:s:p:M:r:w:H")))
+    while ((option = getopt(argc, argv, "c:m:u:C:s:p:M:r:w:H:")))
     {
         if (found_cflag)
             break;
@@ -151,24 +111,81 @@ int main(int argc, char **argv)
                     return EXIT_FAILURE;
                 }
                 break;
-            //TODO: Add all error checks for arguments
             case 'C':
-                strcpy(cgroups[1]->settings[0]->value, optarg); //Not sure this is setting properly
+		cgroups[cgroups_counter] =	
+			& (struct cgroups_control) {
+				.control = CGRP_CPU_CONTROL,
+                		.settings = (struct cgroup_setting *[]) {
+                        		& (struct cgroup_setting) {
+                                		.name = "cpu.shares",
+                                		.value = "" // set empty for now b/c cannot directly equate two strings
+                        		},
+                        		&self_to_task,             // must be added to all the new controls added
+                        		NULL                       // NULL at the end of the array
+                		}
+        		};
+		strcpy(cgroups[cgroups_counter]->settings[0]->value, optarg);
+		cgroups_counter++;
                 break;
             case 's':
-                strcpy(cgroups[2]->settings[0]->value, optarg);
+		cgroups[cgroups_counter] = 
+			& (struct cgroups_control) {
+				.control = CGRP_CPU_SET_CONTROL,
+                		.settings = (struct cgroup_setting *[]) {
+					& (struct cgroup_setting) {
+						.name = "cpuset.cpus",
+                                		.value = "" // set empty for now b/c cannot directly equate two strings
+                        		},
+					& (struct cgroup_setting) {
+						.name = "cpuset.mems",
+						.value = "0" // done as mentioned in announcement
+					},
+                        		&self_to_task,             // must be added to all the new controls added
+                        		NULL                       // NULL at the end of the array
+                		}
+        		};
+		strcpy(cgroups[cgroups_counter]->settings[0]->value, optarg);
+		cgroups_counter++;
                 break;
             case 'p':
-                strcpy(cgroups[3]->settings[0]->value, optarg);
+		cgroups[cgroups_counter] = 
+			& (struct cgroups_control) {
+				.control = CGRP_PIDS_CONTROL,
+                		.settings = (struct cgroup_setting *[]) {
+                        		& (struct cgroup_setting) {
+                                		.name = "pids.max",
+                                		.value =  "" // set empty for now b/c cannot directly equate two strings
+                        		},
+                        		&self_to_task,             // must be added to all the new controls added
+                        		NULL                       // NULL at the end of the array
+                		}
+        		};
+		strcpy(cgroups[cgroups_counter]->settings[0]->value, optarg);
+		cgroups_counter++;
                 break;
             case 'M':
-                strcpy(cgroups[4]->settings[0]->value, optarg);
+		cgroups[cgroups_counter] = 
+			& (struct cgroups_control) {
+                		.control = CGRP_MEMORY_CONTROL,
+                		.settings = (struct cgroup_setting *[]) {
+                        		& (struct cgroup_setting) {
+                                		.name = "memory.limit_in_bytes",
+                                		.value = "" //set empty for now b/c cannot directly equate two strings
+                        		},
+                        		&self_to_task,             // must be added to all the new controls added
+                        		NULL                       // NULL at the end of the array
+                		}
+        		};
+		strcpy(cgroups[cgroups_counter]->settings[0]->value, optarg);
+		cgroups_counter++;
                 break;
             case 'r':
-                strcpy(cgroups[0]->settings[0]->value, optarg);
+		blkio_read_set = true;
+		blkio_read_rate = optarg;
                 break;
             case 'w':
-                strcpy(cgroups[0]->settings[1]->value, optarg);
+		blkio_write_set = true;
+		blkio_write_rate = optarg;
                 break;
             case 'H':
                 config.hostname = optarg;
@@ -179,6 +196,71 @@ int main(int argc, char **argv)
         }
         last_optind = optind;
     }
+
+    // below, dynamically update cgroup for blkio depending on flags passed
+    if(blkio_read_set && blkio_write_set) {
+	    cgroups[0] = 
+			& (struct cgroups_control) {
+                		.control = CGRP_BLKIO_CONTROL,
+                		.settings = (struct cgroup_setting *[]) {
+                        		& (struct cgroup_setting) {
+                                		.name = "blkio.weight",
+                                		.value = "64"
+                        		},
+					& (struct cgroup_setting) {
+						.name = "blkio.throttle.read_bps_device",
+						.value = ""
+					},
+					& (struct cgroup_setting) {
+						.name = "blkio.throttle.write_bps_device",
+						.value = ""
+					},
+                        		&self_to_task,             // must be added to all the new controls added
+                        		NULL                       // NULL at the end of the array
+                		}
+        		};
+	    strcpy(cgroups[0]->settings[1]->value, blkio_read_rate);
+	    strcpy(cgroups[0]->settings[2]->value, blkio_write_rate);
+
+   }
+   else if(blkio_read_set) {
+	  cgroups[0] = 
+			& (struct cgroups_control) {
+                		.control = CGRP_BLKIO_CONTROL,
+                		.settings = (struct cgroup_setting *[]) {
+                        		& (struct cgroup_setting) {
+                                		.name = "blkio.weight",
+                                		.value = "64"
+                        		},
+					& (struct cgroup_setting) {
+						.name = "blkio.throttle.read_bps_device",
+						.value = ""
+					},
+                        		&self_to_task,             // must be added to all the new controls added
+                        		NULL                       // NULL at the end of the array
+                		}
+        		};
+	    strcpy(cgroups[0]->settings[1]->value, blkio_read_rate);
+   }
+   else if(blkio_write_set) {
+	  cgroups[0] = 
+			& (struct cgroups_control) {
+                		.control = CGRP_BLKIO_CONTROL,
+                		.settings = (struct cgroup_setting *[]) {
+                        		& (struct cgroup_setting) {
+                                		.name = "blkio.weight",
+                                		.value = "64"
+                        		},
+					& (struct cgroup_setting) {
+						.name = "blkio.throttle.write_bps_device",
+						.value = ""
+					},
+                        		&self_to_task,             // must be added to all the new controls added
+                        		NULL                       // NULL at the end of the array
+                		}
+        		};
+	    strcpy(cgroups[0]->settings[1]->value, blkio_write_rate);
+   }
 
     if (!config.argc || !config.mount_dir){
         cleanup_stuff(argv, sockets);
@@ -256,7 +338,6 @@ int main(int argc, char **argv)
      **/
 
     child_pid = clone(child_function, stack+STACK_SIZE, CLONE_NEWNET | CLONE_NEWCGROUP | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNS | CLONE_NEWUTS | SIGCHLD, &config);
-    // CLONE_NEWNS for mount namespace
 
     /**
      *  ------------------------------------------------------
@@ -271,8 +352,10 @@ int main(int argc, char **argv)
     close(sockets[1]);
     sockets[1] = 0;
 
-    if (setup_child_uid_map(child_pid, sockets[0]))
+    if (setup_child_uid_map(child_pid, sockets[0]) == -1)
     {
+	    printf("HELLO\n");
+	    fflush(stdout);
         if (child_pid)
             kill(child_pid, SIGKILL);
     }
